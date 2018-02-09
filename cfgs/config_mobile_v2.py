@@ -10,6 +10,6 @@ cfg.class_num = 1000
 #dropout need to keep
 cfg.dropout = 0.5
 
-cfg.steps_per_epoch = 5000
+cfg.steps_per_epoch = 10000
 cfg.max_epoch = 160
 cfg.weight_decay = 4e-5

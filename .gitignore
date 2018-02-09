@@ -1,0 +1,6 @@
+ILSVRC2012
+*__pycache__
+*.npy
+test_quantize
+train_log
+imagenet_utils.py

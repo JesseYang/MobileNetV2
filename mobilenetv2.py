@@ -67,13 +67,12 @@ class Model(ImageNetModel):
             l = DepthConv('depthconv', l, t*in_channel, 3, stride=stride, nl=BNReLU6)
             l = Conv2D('conv2', l, out_channel, 1, nl=BN)
             if stride == 1 and out_channel == in_channel:
-                return l + shortcut
-            else:
-                return l
+                l = l + shortcut
+            return l
 
         with argscope([Conv2D, GlobalAvgPooling, BatchNorm], data_format=self.data_format), \
                 argscope([Conv2D], use_bias=False):
-            l = Conv2D('covn1', image, 32, 3, stride=2, nl=BNReLU)
+            l = Conv2D('conv1', image, 32, 3, stride=2, nl=BNReLU)
             with tf.variable_scope('bottleneck1'):
                 l = bottleneck_v2(l, out_channel=16, t=1, stride=1)
 
@@ -151,7 +150,7 @@ def get_config(model, nr_tower, args):
     callbacks = [
         ModelSaver(),
         HyperParamSetterWithFunc('learning_rate',
-                                     lambda e, x: 4.5e-2 * 0.98 ** e ),
+                                     lambda e, x: 4.5e-2 * 0.98 ** (e + 80) ),
         HumanHyperParamSetter('learning_rate'),
     ]
     infs = [ClassificationError('wrong-top1', 'val-error-top1'),
@@ -180,7 +179,7 @@ if __name__ == '__main__':
     parser.add_argument('--load', help='load model')
     parser.add_argument('--eval', action='store_true')
     parser.add_argument('--flops', action='store_true', help='print flops and exit')
-    parser.add_argument('--batch_size', default=256, type=int)
+    parser.add_argument('--batch_size', default=128, type=int)
     args = parser.parse_args()
 
     if args.gpu:
