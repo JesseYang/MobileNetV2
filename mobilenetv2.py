@@ -72,7 +72,7 @@ class Model(ImageNetModel):
 
         with argscope([Conv2D, GlobalAvgPooling, BatchNorm], data_format=self.data_format), \
                 argscope([Conv2D], use_bias=False):
-            l = Conv2D('conv1', image, 32, 3, stride=2, nl=BNReLU)
+            l = Conv2D('covn1', image, 32, 3, stride=2, nl=BNReLU)
             with tf.variable_scope('bottleneck1'):
                 l = bottleneck_v2(l, out_channel=16, t=1, stride=1)
 
@@ -150,7 +150,8 @@ def get_config(model, nr_tower, args):
     callbacks = [
         ModelSaver(),
         HyperParamSetterWithFunc('learning_rate',
-                                     lambda e, x: 4.5e-2 * 0.98 ** (e + 80) ),
+                                     lambda e, x: 1e-3),
+                                     # lambda e, x: 4.5e-2 * 0.98 ** e),
         HumanHyperParamSetter('learning_rate'),
     ]
     infs = [ClassificationError('wrong-top1', 'val-error-top1'),

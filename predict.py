@@ -25,52 +25,27 @@ try:
 except Exception:
     from mobilenetv2 import Model
 
-feat_names = ["network_input",
-              "covn1/output",
-              "bottleneck1/conv2/bn/output",
-              "bottleneck2/block0/conv2/bn/output",
-              "bottleneck2/block1/add",
-              "bottleneck3/block0/conv2/bn/output",
-              "bottleneck3/block1/add",
-              "bottleneck3/block2/add",
-              "bottleneck4/block0/conv2/bn/output",
-              "bottleneck4/block1/add",
-              "bottleneck4/block2/add",
-              "bottleneck4/block3/add",
-              "bottleneck5/block0/conv2/bn/output",
-              "bottleneck5/block1/add",
-              "bottleneck5/block2/add",
-              "bottleneck6/block0/conv2/bn/output",
-              "bottleneck6/block1/add",
-              "bottleneck6/block2/add",
-              "bottleneck7/conv2/bn/output",
-              "conv2/output",
-              "linear/output"]
-
 def get_pred_func(args):
     sess_init = SaverRestore(args.model_path)
     model = Model()
     predict_config = PredictConfig(session_init=sess_init,
                                    model=model,
                                    input_names=["input"],
-                                   output_names=feat_names)
+                                   output_names=["linear/output"])
 
     predict_func = OfflinePredictor(predict_config) 
     return predict_func
 
-def do_export(input_path, output_path, predict_func):
+def predict(input_path, output_path, predict_func):
     ori_image = cv2.imread(input_path)
     image = cv2.resize(ori_image, (cfg.w, cfg.h))
     image = np.expand_dims(image, axis=0)
 
     predictions = predict_func(image)
 
-    feat_dict = { }
-    for feat_idx, feat_name in enumerate(feat_names):
-        key_name = feat_name.replace('/', '_')
-        feat_dict[key_name] = predictions[feat_idx][0]
+    cls_pred = np.argmax(predictions[0])
+    print(cls_pred)
 
-    np.save(output_path, feat_dict)
 
 
 if __name__ == '__main__':
@@ -82,4 +57,4 @@ if __name__ == '__main__':
 
 
     predict_func = get_pred_func(args)
-    do_export(args.input_path, args.output_path, predict_func)
+    predict(args.input_path, args.output_path, predict_func)

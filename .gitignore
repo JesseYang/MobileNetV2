@@ -4,3 +4,4 @@ ILSVRC2012
 test_quantize
 train_log
 imagenet_utils.py
+*.jpg
