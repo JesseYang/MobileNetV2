@@ -22,8 +22,6 @@ from imagenet_utils import (
     get_imagenet_dataflow,
     ImageNetModel, GoogleNetResize, eval_on_ILSVRC12)
 from cfgs.config import cfg
-TOTAL_BATCH_SIZE = 256
-
 
 @layer_register(log_shape=True)
 def DepthConv(x, out_channel, kernel_shape, padding='SAME', stride=1,
@@ -72,7 +70,7 @@ class Model(ImageNetModel):
 
         with argscope([Conv2D, GlobalAvgPooling, BatchNorm], data_format=self.data_format), \
                 argscope([Conv2D], use_bias=False):
-            l = Conv2D('covn1', image, 32, 3, stride=2, nl=BNReLU)
+            l = Conv2D('covn1', image, 32, 3, stride=2, nl=BNReLU6)
             with tf.variable_scope('bottleneck1'):
                 l = bottleneck_v2(l, out_channel=16, t=1, stride=1)
 
@@ -102,7 +100,7 @@ class Model(ImageNetModel):
                         l = bottleneck_v2(l, out_channel=160, t=6, stride=2 if j== 0 else 1)
             with tf.variable_scope('bottleneck7'):
                 l = bottleneck_v2(l, out_channel=320, t=6, stride=1)
-            l = Conv2D('conv2', l, 1280, 1, nl=BNReLU)
+            l = Conv2D('conv2', l, 1280, 1, nl=BNReLU6)
             l = GlobalAvgPooling('gap', l)
             l = Dropout("dp", l, cfg.dropout)
             logits = FullyConnected('linear', l, cfg.class_num)
@@ -141,7 +139,6 @@ def get_data(name, batch):
 
 
 def get_config(model, nr_tower, args):
-    # batch = TOTAL_BATCH_SIZE // nr_tower
     batch = args.batch_size // nr_tower
 
     logger.info("Running on {} towers. Batch size per tower: {}".format(nr_tower, batch))
@@ -150,8 +147,8 @@ def get_config(model, nr_tower, args):
     callbacks = [
         ModelSaver(),
         HyperParamSetterWithFunc('learning_rate',
-                                     lambda e, x: 1e-3),
-                                     # lambda e, x: 4.5e-2 * 0.98 ** e),
+                                     # lambda e, x: 1e-3),
+                                     lambda e, x: 4.5e-2 * 0.98 ** e),
         HumanHyperParamSetter('learning_rate'),
     ]
     infs = [ClassificationError('wrong-top1', 'val-error-top1'),
@@ -181,6 +178,7 @@ if __name__ == '__main__':
     parser.add_argument('--eval', action='store_true')
     parser.add_argument('--flops', action='store_true', help='print flops and exit')
     parser.add_argument('--batch_size', default=128, type=int)
+    parser.add_argument('--logdir', help="train log directory name")
     args = parser.parse_args()
 
     if args.gpu:
@@ -209,7 +207,7 @@ if __name__ == '__main__':
             options=tf.profiler.ProfileOptionBuilder.float_operation())
     else:
         logger.set_logger_dir(
-            os.path.join('train_log', 'mobilenetv2'))
+            os.path.join('train_log', 'mobilenetv2' if args.logdir == None else args.logdir))
 
         nr_tower = max(get_nr_gpu(), 1)
         config = get_config(model, nr_tower, args)
